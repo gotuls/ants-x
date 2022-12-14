@@ -39,12 +39,6 @@ const (
 	_   = 1 << (10 * iota)
 	KiB // 1024
 	MiB // 1048576
-	// GiB // 1073741824
-	// TiB // 1099511627776             (超过了int32的范围)
-	// PiB // 1125899906842624
-	// EiB // 1152921504606846976
-	// ZiB // 1180591620717411303424    (超过了int64的范围)
-	// YiB // 1208925819614629174706176
 )
 
 const (
@@ -190,9 +184,7 @@ func TestAntsPoolWithFuncGetWorkerFromCachePreMalloc(t *testing.T) {
 	t.Logf("memory usage:%d MB", curMem)
 }
 
-//-------------------------------------------------------------------------------------------
 // Contrast between goroutines without a pool and goroutines with ants pool.
-//-------------------------------------------------------------------------------------------
 
 func TestNoPool(t *testing.T) {
 	var wg sync.WaitGroup
@@ -232,9 +224,6 @@ func TestAntsPool(t *testing.T) {
 	curMem = mem.TotalAlloc/MiB - curMem
 	t.Logf("memory usage:%d MB", curMem)
 }
-
-//-------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------
 
 func TestPanicHandler(t *testing.T) {
 	var panicCounter int64
@@ -334,22 +323,50 @@ func TestPoolPanicWithoutHandlerPreMalloc(t *testing.T) {
 	_ = p1.Invoke("Oops!")
 }
 
-func TestPurge(t *testing.T) {
-	p, err := NewPool(10)
+func TestPurgePool(t *testing.T) {
+	size := 500
+	ch := make(chan struct{})
+
+	p, err := NewPool(size)
 	assert.NoErrorf(t, err, "create TimingPool failed: %v", err)
 	defer p.Release()
-	_ = p.Submit(demoFunc)
-	time.Sleep(3 * DefaultCleanIntervalTime)
-	assert.EqualValues(t, 0, p.Running(), "all p should be purged")
-	p1, err := NewPoolWithFunc(10, demoPoolFunc)
+
+	for i := 0; i < size; i++ {
+		j := i + 1
+		_ = p.Submit(func() {
+			<-ch
+			d := j % 100
+			time.Sleep(time.Duration(d) * time.Millisecond)
+		})
+	}
+	assert.Equalf(t, size, p.Running(), "pool should be full, expected: %d, but got: %d", size, p.Running())
+
+	close(ch)
+	time.Sleep(5 * DefaultCleanIntervalTime)
+	assert.Equalf(t, 0, p.Running(), "pool should be empty after purge, but got %d", p.Running())
+
+	ch = make(chan struct{})
+	f := func(i interface{}) {
+		<-ch
+		d := i.(int) % 100
+		time.Sleep(time.Duration(d) * time.Millisecond)
+	}
+
+	p1, err := NewPoolWithFunc(size, f)
 	assert.NoErrorf(t, err, "create TimingPoolWithFunc failed: %v", err)
 	defer p1.Release()
-	_ = p1.Invoke(1)
-	time.Sleep(3 * DefaultCleanIntervalTime)
-	assert.EqualValues(t, 0, p.Running(), "all p should be purged")
+
+	for i := 0; i < size; i++ {
+		_ = p1.Invoke(i)
+	}
+	assert.Equalf(t, size, p1.Running(), "pool should be full, expected: %d, but got: %d", size, p1.Running())
+
+	close(ch)
+	time.Sleep(5 * DefaultCleanIntervalTime)
+	assert.Equalf(t, 0, p1.Running(), "pool should be empty after purge, but got %d", p1.Running())
 }
 
-func TestPurgePreMalloc(t *testing.T) {
+func TestPurgePreMallocPool(t *testing.T) {
 	p, err := NewPool(10, WithPreAlloc(true))
 	assert.NoErrorf(t, err, "create TimingPool failed: %v", err)
 	defer p.Release()
@@ -559,9 +576,7 @@ func TestInfinitePool(t *testing.T) {
 	}
 	var err error
 	_, err = NewPool(-1, WithPreAlloc(true))
-	if err != ErrInvalidPreAllocSize {
-		t.Errorf("expect ErrInvalidPreAllocSize but got %v", err)
-	}
+	assert.EqualErrorf(t, err, ErrInvalidPreAllocSize.Error(), "")
 }
 
 func testPoolWithDisablePurge(t *testing.T, p *Pool, numWorker int, waitForPurge time.Duration) {
