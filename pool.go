@@ -179,6 +179,12 @@ func (p *Pool) Submit(task func()) error {
 	return nil
 }
 
+// Execute submits a task to pool and with a future to get async value.
+func (p *Pool) Execute(callable Callable) (Future, error) {
+	future := newFutureTask(callable)
+	return future, p.Submit(future.Run)
+}
+
 // Running returns the number of workers currently running.
 func (p *Pool) Running() int {
 	return int(atomic.LoadInt32(&p.running))

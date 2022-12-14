@@ -23,6 +23,7 @@
 package ants
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"runtime"
@@ -957,4 +958,37 @@ func TestReleaseTimeout(t *testing.T) {
 	assert.NotZero(t, pf.Running())
 	err = pf.ReleaseTimeout(2 * time.Second)
 	assert.NoError(t, err)
+}
+
+func TestExecute(t *testing.T) {
+	p, _ := NewPool(10)
+
+	// return error
+	f, err := p.Execute(func() (value interface{}, err error) {
+		return nil, fmt.Errorf("execute failed")
+	})
+	assert.NoError(t, err)
+	r, err := f.Get()
+	assert.Error(t, err, "execute failed")
+	assert.Nil(t, r)
+
+	// return value
+	f, err = p.Execute(func() (value interface{}, err error) {
+		time.Sleep(200 * time.Millisecond)
+		return "ok", nil
+	})
+	assert.NoError(t, err)
+	r, err = f.Get()
+	assert.NoError(t, err)
+	assert.Equal(t, r, "ok")
+
+	// get timeout
+	f, err = p.Execute(func() (value interface{}, err error) {
+		time.Sleep(200 * time.Millisecond)
+		return "ok", nil
+	})
+	assert.NoError(t, err)
+	r, err = f.GetTimeout(180 * time.Millisecond)
+	assert.Error(t, err, ErrTimeout)
+	assert.Nil(t, r)
 }

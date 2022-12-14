@@ -104,6 +104,11 @@ func Submit(task func()) error {
 	return defaultAntsPool.Submit(task)
 }
 
+// Execute submits a task to pool and with a future to get async value.
+func Execute(callable Callable) (Future, error) {
+	return defaultAntsPool.Execute(callable)
+}
+
 // Running returns the number of the currently running goroutines.
 func Running() int {
 	return defaultAntsPool.Running()
