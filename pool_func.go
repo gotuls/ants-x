@@ -28,7 +28,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/panjf2000/ants/v2/internal"
+	"github.com/gotuls/ants-x/internal"
 )
 
 // PoolWithFunc accepts the tasks from client,

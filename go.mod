@@ -1,4 +1,4 @@
-module github.com/panjf2000/ants/v2
+module github.com/gotuls/ants-x
 
 go 1.13
 
