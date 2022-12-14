@@ -24,7 +24,7 @@ import "time"
 
 const defaultTimeout = 5000 * time.Millisecond
 
-// callable return the execute result and err
+// callable return the execute result and err.
 type Callable func() (interface{}, error)
 
 type Future interface {
@@ -64,7 +64,7 @@ func (f *futureTask) GetTimeout(timeout time.Duration) (interface{}, error) {
 	}
 }
 
-// execute the future task's callable
+// execute the future task's callable.
 func (f *futureTask) Run() {
 	if f.callable == nil {
 		f.chn <- nil
