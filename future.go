@@ -22,7 +22,7 @@ package ants
 
 import "time"
 
-const defaultTimeout = time.Duration(1<<63-1) * time.Millisecond
+const defaultTimeout = 3600 * time.Second
 
 // callable return the execute result and err.
 type Callable func() (interface{}, error)
