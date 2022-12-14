@@ -22,13 +22,12 @@ package ants
 
 import "time"
 
-const defaultTimeout = 5000 * time.Millisecond
+const defaultTimeout = time.Duration(int(^uint(0)>>1)) * time.Millisecond
 
 // callable return the execute result and err.
 type Callable func() (interface{}, error)
 
 type Future interface {
-
 	// get the async result with default timeout 5s.
 	Get() (interface{}, error)
 
